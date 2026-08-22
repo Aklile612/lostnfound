@@ -61,6 +61,8 @@ If none are plausible, return {"matches":[]}.`
 
 type modelMatch struct {
 	ID        string  `json:"id"`
+	FoundID   string  `json:"found_id"`
+	LostID    string  `json:"lost_id"`
 	Score     float64 `json:"score"`
 	Reasoning string  `json:"reasoning"`
 }
@@ -137,7 +139,15 @@ func parseScores(raw string, anchor domain.Report, candidates []domain.Report) [
 	}
 	var out []domain.ScoreSet
 	for _, m := range parsed.Matches {
-		c, ok := known[m.ID]
+		id := m.ID
+		if id == "" {
+			if anchor.Type == domain.TypeLost {
+				id = m.FoundID
+			} else {
+				id = m.LostID
+			}
+		}
+		c, ok := known[id]
 		if !ok {
 			continue
 		}

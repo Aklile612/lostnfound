@@ -1,5 +1,6 @@
 .env
 .env.local
+scripts/.testdata
 node_modules
 .next
 backend/tmp

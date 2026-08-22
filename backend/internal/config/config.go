@@ -48,8 +48,8 @@ func Load() (Config, error) {
 		CORSOrigin:     env("CORS_ORIGIN", "http://localhost:3000"),
 		GeminiAPIKey:   os.Getenv("GEMINI_API_KEY"),
 		GroqAPIKey:     os.Getenv("GROQ_API_KEY"),
-		GeminiModel:    env("GEMINI_MODEL", "gemini-2.0-flash"),
-		GroqModel:      env("GROQ_MODEL", "llama-3.3-70b-versatile"),
+		GeminiModel:    env("GEMINI_MODEL", "gemini-3.6-flash"),
+		GroqModel:      env("GROQ_MODEL", "openai/gpt-oss-20b"),
 		MatchWindow:    window,
 		MatchThreshold: threshold,
 	}

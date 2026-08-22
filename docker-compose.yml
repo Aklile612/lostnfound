@@ -21,6 +21,8 @@ services:
     environment:
       POSTGRES_HOST: postgres
       UPLOAD_DIR: /app/uploads
+      GEMINI_MODEL: gemini-3.6-flash
+      GROQ_MODEL: openai/gpt-oss-20b
     ports:
       - "8080:8080"
     volumes:

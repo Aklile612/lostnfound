@@ -100,7 +100,11 @@ func (g *Gemini) compare(ctx context.Context, anchor domain.Report, candidates [
 	if len(parsed.Candidates) == 0 || len(parsed.Candidates[0].Content.Parts) == 0 {
 		return nil, fmt.Errorf("gemini: empty response")
 	}
-	return parseScores(parsed.Candidates[0].Content.Parts[0].Text, anchor, limited), nil
+	var text strings.Builder
+	for _, part := range parsed.Candidates[0].Content.Parts {
+		text.WriteString(part.Text)
+	}
+	return parseScores(text.String(), anchor, limited), nil
 }
 
 func (g *Gemini) imageParts(label string, report domain.Report) []map[string]any {
