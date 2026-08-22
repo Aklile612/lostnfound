@@ -4,33 +4,30 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func Router(h *Handler, origin, uploadDir string) http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", h.Health)
-	mux.HandleFunc("GET /api/meta", h.Meta)
-	mux.HandleFunc("POST /api/reports/lost", h.CreateLost)
-	mux.HandleFunc("POST /api/reports/found", h.CreateFound)
-	mux.HandleFunc("GET /api/reports/{id}", h.GetReport)
-	mux.HandleFunc("POST /api/reports/{id}/matches", h.RefreshMatches)
-	mux.HandleFunc("POST /api/reports/{id}/claim", h.Claim)
-	fs := http.FileServer(http.Dir(uploadDir))
-	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", fs))
-	return withCORS(mux, origin)
-}
-
-func withCORS(next http.Handler, origin string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.MaxMultipartMemory = 32 << 20
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{origin},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodOptions},
+		AllowHeaders: []string{"Content-Type"},
+	}))
+	r.GET("/health", h.Health)
+	r.GET("/api/meta", h.Meta)
+	r.POST("/api/reports/lost", h.CreateLost)
+	r.POST("/api/reports/found", h.CreateFound)
+	r.GET("/api/reports/:id", h.GetReport)
+	r.POST("/api/reports/:id/matches", h.RefreshMatches)
+	r.POST("/api/reports/:id/claim", h.Claim)
+	r.Static("/uploads", uploadDir)
+	return r
 }
 
 func EnsureUploadDir(dir string) error {

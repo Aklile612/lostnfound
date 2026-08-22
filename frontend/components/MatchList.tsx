@@ -101,15 +101,6 @@ export function MatchList({
             )}
             <Photos report={other} />
             <p className="mt-4 border-l-[3px] border-primary pl-3 text-base leading-6">{match.reasoning}</p>
-            {match.groq_score != null || match.gemini_score != null ? (
-              <p className="stamp mt-3 text-ink/50">
-                {match.groq_score != null ? `Groq ${Math.round(match.groq_score)}` : null}
-                {match.groq_score != null && match.gemini_score != null ? " · " : null}
-                {match.gemini_score != null ? `Gemini ${Math.round(match.gemini_score)}` : null}
-              </p>
-            ) : (
-              <p className="stamp mt-3 text-ink/50">Local heuristic — add Groq and Gemini keys for model scoring</p>
-            )}
             {perspective === "lost" && found && found.status !== "claimed" && !claimed[found.id] && (
               <div className="mt-4 flex flex-wrap items-center gap-3 border-t-[3px] border-ink pt-4">
                 <a className="btn bg-ink text-white shadow-brutal-sm" href={`tel:${found.phone}`}>

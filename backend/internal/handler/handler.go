@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"lostandfound/internal/domain"
@@ -13,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -25,101 +25,98 @@ func New(svc *service.Service, uploadDir string) *Handler {
 	return &Handler{svc: svc, uploadDir: uploadDir}
 }
 
-func (h *Handler) Health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+func (h *Handler) Health(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
-func (h *Handler) Meta(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
+func (h *Handler) Meta(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
 		"categories": domain.Categories,
 		"locations":  domain.Locations,
 	})
 }
 
-func (h *Handler) CreateLost(w http.ResponseWriter, r *http.Request) {
-	h.create(w, r, domain.TypeLost)
+func (h *Handler) CreateLost(c *gin.Context) {
+	h.create(c, domain.TypeLost)
 }
 
-func (h *Handler) CreateFound(w http.ResponseWriter, r *http.Request) {
-	h.create(w, r, domain.TypeFound)
+func (h *Handler) CreateFound(c *gin.Context) {
+	h.create(c, domain.TypeFound)
 }
 
-func (h *Handler) create(w http.ResponseWriter, r *http.Request, kind domain.ReportType) {
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		writeError(w, http.StatusBadRequest, "could not read form")
-		return
-	}
-	photos, err := h.savePhotos(r)
+func (h *Handler) create(c *gin.Context, kind domain.ReportType) {
+	photos, err := h.savePhotos(c)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	date, err := time.Parse("2006-01-02", strings.TrimSpace(r.FormValue("incident_date")))
+	date, err := time.Parse("2006-01-02", strings.TrimSpace(c.PostForm("incident_date")))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "date must be YYYY-MM-DD")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "date must be YYYY-MM-DD"})
 		return
 	}
-	report, matches, err := h.svc.Create(r.Context(), service.ReportInput{
+	report, matches, err := h.svc.Create(c.Request.Context(), service.ReportInput{
 		Type:            kind,
-		Category:        r.FormValue("category"),
-		Title:           r.FormValue("title"),
-		Description:     r.FormValue("description"),
-		UniqueFeatures:  r.FormValue("unique_features"),
-		Location:        r.FormValue("location"),
-		LocationDetails: r.FormValue("location_details"),
+		Category:        c.PostForm("category"),
+		Title:           c.PostForm("title"),
+		Description:     c.PostForm("description"),
+		UniqueFeatures:  c.PostForm("unique_features"),
+		Location:        c.PostForm("location"),
+		LocationDetails: c.PostForm("location_details"),
 		IncidentDate:    date,
 		Photos:          photos,
-		Phone:           r.FormValue("phone"),
-		Telegram:        r.FormValue("telegram"),
+		Phone:           c.PostForm("phone"),
+		Telegram:        c.PostForm("telegram"),
 	})
 	if err != nil {
-		h.handleErr(w, err)
+		h.handleErr(c, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{
+	c.JSON(http.StatusCreated, gin.H{
 		"report":  toJSON(report),
 		"matches": matchesJSON(matches),
 	})
 }
 
-func (h *Handler) GetReport(w http.ResponseWriter, r *http.Request) {
-	report, matches, err := h.svc.ListMatches(r.Context(), r.PathValue("id"))
+func (h *Handler) GetReport(c *gin.Context) {
+	report, matches, err := h.svc.ListMatches(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		h.handleErr(w, err)
+		h.handleErr(c, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	c.JSON(http.StatusOK, gin.H{
 		"report":  toJSON(report),
 		"matches": matchesJSON(matches),
 	})
 }
 
-func (h *Handler) RefreshMatches(w http.ResponseWriter, r *http.Request) {
-	report, matches, err := h.svc.RefreshMatches(r.Context(), r.PathValue("id"))
+func (h *Handler) RefreshMatches(c *gin.Context) {
+	report, matches, err := h.svc.RefreshMatches(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		h.handleErr(w, err)
+		h.handleErr(c, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	c.JSON(http.StatusOK, gin.H{
 		"report":  toJSON(report),
 		"matches": matchesJSON(matches),
 	})
 }
 
-func (h *Handler) Claim(w http.ResponseWriter, r *http.Request) {
-	report, err := h.svc.Claim(r.Context(), r.PathValue("id"))
+func (h *Handler) Claim(c *gin.Context) {
+	report, err := h.svc.Claim(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		h.handleErr(w, err)
+		h.handleErr(c, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"report": toJSON(report)})
+	c.JSON(http.StatusOK, gin.H{"report": toJSON(report)})
 }
 
-func (h *Handler) savePhotos(r *http.Request) ([]string, error) {
-	if r.MultipartForm == nil {
-		return nil, nil
+func (h *Handler) savePhotos(c *gin.Context) ([]string, error) {
+	form, err := c.MultipartForm()
+	if err != nil {
+		return nil, errors.New("could not read form")
 	}
-	files := r.MultipartForm.File["photos"]
+	files := form.File["photos"]
 	if len(files) > 3 {
 		return nil, errors.New("at most 3 photos")
 	}
@@ -139,8 +136,7 @@ func (h *Handler) savePhotos(r *http.Request) ([]string, error) {
 			return nil, err
 		}
 		name := uuid.NewString() + ext
-		dstPath := filepath.Join(h.uploadDir, name)
-		dst, err := os.Create(dstPath)
+		dst, err := os.Create(filepath.Join(h.uploadDir, name))
 		if err != nil {
 			src.Close()
 			return nil, err
@@ -156,15 +152,14 @@ func (h *Handler) savePhotos(r *http.Request) ([]string, error) {
 	return names, nil
 }
 
-func (h *Handler) handleErr(w http.ResponseWriter, err error) {
+func (h *Handler) handleErr(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrValidation):
-		msg := strings.TrimPrefix(err.Error(), "validation: ")
-		writeError(w, http.StatusBadRequest, msg)
+		c.JSON(http.StatusBadRequest, gin.H{"error": strings.TrimPrefix(err.Error(), "validation: ")})
 	case errors.Is(err, repository.ErrNotFound):
-		writeError(w, http.StatusNotFound, "report not found")
+		c.JSON(http.StatusNotFound, gin.H{"error": "report not found"})
 	default:
-		writeError(w, http.StatusInternalServerError, "something went wrong")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "something went wrong"})
 	}
 }
 
@@ -188,13 +183,13 @@ type reportJSON struct {
 }
 
 type matchJSON struct {
-	ID            string      `json:"id"`
-	Score         float64     `json:"score"`
-	GroqScore     *float64    `json:"groq_score"`
-	GeminiScore   *float64    `json:"gemini_score"`
-	Reasoning     string      `json:"reasoning"`
-	LostReport    *reportJSON `json:"lost_report,omitempty"`
-	FoundReport   *reportJSON `json:"found_report,omitempty"`
+	ID          string      `json:"id"`
+	Score       float64     `json:"score"`
+	GroqScore   *float64    `json:"groq_score"`
+	GeminiScore *float64    `json:"gemini_score"`
+	Reasoning   string      `json:"reasoning"`
+	LostReport  *reportJSON `json:"lost_report,omitempty"`
+	FoundReport *reportJSON `json:"found_report,omitempty"`
 }
 
 func toJSON(r domain.Report) reportJSON {
@@ -246,14 +241,4 @@ func matchesJSON(matches []domain.Match) []matchJSON {
 		out = append(out, item)
 	}
 	return out
-}
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
-}
-
-func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
 }

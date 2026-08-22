@@ -84,7 +84,7 @@ Each kept match stores Groq score, Gemini score, combined score, and a short rea
 
 ## Technical decisions
 
-- **Go** for the API: stdlib `ServeMux`, pgx, no extra web framework.
+- **Go** for the API: Gin, pgx.
 - **Next.js** for the UI: two forms and a report page.
 - **Postgres** so the hard filter is a real query, not a loop in memory.
 - **Clean architecture** in the backend: `domain` → `port` → `repository` / `ai` → `service` → `handler`. Matching rules stay in the service; HTTP does not know about Groq or Gemini.
