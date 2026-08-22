@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 import json
+import os
+import shutil
 import subprocess
+import time
 import urllib.request
 import uuid
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-IMG_DIR = ROOT / "scripts" / ".testdata"
+IN_COMPOSE = os.environ.get("SEED_IN_COMPOSE") == "1"
+IMG_DIR = Path(os.environ.get("IMG_DIR", "/tmp/seed-images" if IN_COMPOSE else str(ROOT / "scripts" / ".testdata")))
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 UA = {"User-Agent": "ReuniteCampusSeed/1.0 (educational lost-and-found demo)"}
-BACKEND = "lost_and_found-backend-1"
 COMPOSE = ["docker", "compose", "-f", str(ROOT / "docker-compose.yml")]
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/app/uploads"))
+FOUND_DATE = date.today().isoformat()
+LOST_DATE = (date.today() - timedelta(days=1)).isoformat()
 
 ITEMS = [
     {
@@ -22,7 +29,6 @@ ITEMS = [
         "unique_features": "white glossy case, AirPods Pro hinge, no sticker",
         "location": "cafeteria",
         "location_details": "table near the window",
-        "incident_date": "2026-08-22",
         "phone": "+251911100001",
         "telegram": "campus_seed_airpods",
         "search": {
@@ -32,7 +38,6 @@ ITEMS = [
             "marks": "white glossy Apple case",
             "place": "Cafeteria",
             "details": "near the window",
-            "date": "2026-08-21",
         },
     },
     {
@@ -44,7 +49,6 @@ ITEMS = [
         "unique_features": "white case, small scuff on the front corner",
         "location": "coffee_shop",
         "location_details": "table by the door",
-        "incident_date": "2026-08-22",
         "phone": "+251911100010",
         "telegram": "campus_seed_airpods_2",
         "search": {
@@ -54,7 +58,6 @@ ITEMS = [
             "marks": "white glossy Apple case",
             "place": "Cafeteria",
             "details": "near the window",
-            "date": "2026-08-21",
         },
     },
     {
@@ -66,7 +69,6 @@ ITEMS = [
         "unique_features": "black brick adapter, long cable, tape on the plug",
         "location": "lecture_hall",
         "location_details": "row 4, left side",
-        "incident_date": "2026-08-22",
         "phone": "+251911100002",
         "telegram": "campus_seed_charger",
         "search": {
@@ -76,7 +78,6 @@ ITEMS = [
             "marks": "tape on the plug",
             "place": "Lecture hall",
             "details": "about row 4",
-            "date": "2026-08-22",
         },
     },
     {
@@ -88,7 +89,6 @@ ITEMS = [
         "unique_features": "black, multiple zip pockets, hiking straps",
         "location": "library",
         "location_details": "near the entrance",
-        "incident_date": "2026-08-22",
         "phone": "+251911100003",
         "telegram": "campus_seed_backpack",
         "search": {
@@ -98,7 +98,6 @@ ITEMS = [
             "marks": "hiking straps, several zippers",
             "place": "Library",
             "details": "near the entrance",
-            "date": "2026-08-21",
         },
     },
     {
@@ -110,7 +109,6 @@ ITEMS = [
         "unique_features": "photo ID, university logo, barcode on the back",
         "location": "student_center",
         "location_details": "lounge chairs",
-        "incident_date": "2026-08-22",
         "phone": "+251911100004",
         "telegram": "campus_seed_id",
         "search": {
@@ -120,7 +118,6 @@ ITEMS = [
             "marks": "barcode on the back",
             "place": "Student center",
             "details": "lounge area",
-            "date": "2026-08-22",
         },
     },
     {
@@ -132,7 +129,6 @@ ITEMS = [
         "unique_features": "chip cards, one blue one gold",
         "location": "gym",
         "location_details": "bench near the entrance",
-        "incident_date": "2026-08-22",
         "phone": "+251911100005",
         "telegram": "campus_seed_cards",
         "search": {
@@ -142,7 +138,6 @@ ITEMS = [
             "marks": "chip cards",
             "place": "Gym",
             "details": "near the entrance bench",
-            "date": "2026-08-22",
         },
     },
     {
@@ -154,7 +149,6 @@ ITEMS = [
         "unique_features": "black remote fob, metal key ring",
         "location": "parking",
         "location_details": "south lot, near the lamp post",
-        "incident_date": "2026-08-22",
         "phone": "+251911100006",
         "telegram": "campus_seed_keys",
         "search": {
@@ -164,7 +158,6 @@ ITEMS = [
             "marks": "black fob",
             "place": "Parking",
             "details": "south lot",
-            "date": "2026-08-22",
         },
     },
     {
@@ -176,7 +169,6 @@ ITEMS = [
         "unique_features": "bright blue, graphic on the chest",
         "location": "dormitory",
         "location_details": "ground floor common room",
-        "incident_date": "2026-08-22",
         "phone": "+251911100007",
         "telegram": "campus_seed_hoodie",
         "search": {
@@ -186,7 +178,6 @@ ITEMS = [
             "marks": "graphic print on the chest",
             "place": "Dormitory",
             "details": "ground floor common room",
-            "date": "2026-08-21",
         },
     },
     {
@@ -198,7 +189,6 @@ ITEMS = [
         "unique_features": "plain silver band",
         "location": "coffee_shop",
         "location_details": "table by the door",
-        "incident_date": "2026-08-22",
         "phone": "+251911100008",
         "telegram": "campus_seed_ring",
         "search": {
@@ -208,7 +198,6 @@ ITEMS = [
             "marks": "plain silver band",
             "place": "Coffee shop",
             "details": "near the door",
-            "date": "2026-08-22",
         },
     },
     {
@@ -220,7 +209,6 @@ ITEMS = [
         "unique_features": "thick hardcover, notes in the margin",
         "location": "library",
         "location_details": "second floor quiet zone",
-        "incident_date": "2026-08-22",
         "phone": "+251911100009",
         "telegram": "campus_seed_book",
         "search": {
@@ -230,7 +218,6 @@ ITEMS = [
             "marks": "handwritten notes in the margin",
             "place": "Library",
             "details": "second floor",
-            "date": "2026-08-22",
         },
     },
 ]
@@ -241,38 +228,136 @@ def download(name: str, url: str) -> Path:
     if dest.exists() and dest.stat().st_size > 2000:
         print(f"using cached {name}")
         return dest
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=40) as res:
-        data = res.read()
-    if len(data) < 2000:
-        raise RuntimeError(f"{name} too small ({len(data)} bytes)")
-    dest.write_bytes(data)
-    print(f"downloaded {name} ({len(data)} bytes)")
-    return dest
+    last_error = None
+    for attempt in range(1, 4):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=40) as res:
+                data = res.read()
+            if len(data) < 2000:
+                raise RuntimeError(f"{name} too small ({len(data)} bytes)")
+            dest.write_bytes(data)
+            print(f"downloaded {name} ({len(data)} bytes)")
+            return dest
+        except Exception as err:
+            last_error = err
+            print(f"download {name} attempt {attempt} failed: {err}")
+            time.sleep(2 * attempt)
+    raise RuntimeError(f"could not download {name}: {last_error}")
 
 
 def sql_str(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
-def psql(sql: str) -> None:
-    subprocess.run(
-        COMPOSE + ["exec", "-T", "postgres", "psql", "-U", "nemma", "-d", "lost_and_found", "-v", "ON_ERROR_STOP=1"],
+def psql_cmd() -> list[str]:
+    if IN_COMPOSE:
+        return [
+            "psql",
+            "-h",
+            os.environ.get("POSTGRES_HOST", "postgres"),
+            "-U",
+            os.environ.get("POSTGRES_USER", "nemma"),
+            "-d",
+            os.environ.get("POSTGRES_DB", "lost_and_found"),
+            "-v",
+            "ON_ERROR_STOP=1",
+        ]
+    return COMPOSE + [
+        "exec",
+        "-T",
+        "postgres",
+        "psql",
+        "-U",
+        os.environ.get("POSTGRES_USER", "nemma"),
+        "-d",
+        os.environ.get("POSTGRES_DB", "lost_and_found"),
+        "-v",
+        "ON_ERROR_STOP=1",
+    ]
+
+
+def psql_env() -> dict[str, str]:
+    env = os.environ.copy()
+    if IN_COMPOSE:
+        env["PGPASSWORD"] = os.environ.get("POSTGRES_PASSWORD", "")
+    return env
+
+
+def psql(sql: str) -> str:
+    result = subprocess.run(
+        psql_cmd(),
         input=sql.encode(),
-        check=True,
+        capture_output=True,
+        env=psql_env(),
     )
+    if result.returncode != 0:
+        err = result.stderr.decode() or result.stdout.decode()
+        raise RuntimeError(err.strip() or f"psql exited {result.returncode}")
+    return result.stdout.decode()
+
+
+def wait_ready() -> None:
+    backend_url = os.environ.get("BACKEND_URL", "http://backend:8080/health")
+    for _ in range(90):
+        try:
+            urllib.request.urlopen(backend_url, timeout=2)
+            psql("SELECT 1 FROM reports LIMIT 1;")
+            return
+        except Exception:
+            time.sleep(1)
+    raise RuntimeError("timed out waiting for backend and database")
+
+
+def already_seeded() -> bool:
+    out = psql("SELECT COUNT(*) FROM reports WHERE telegram LIKE 'campus_seed_%';")
+    for line in out.splitlines():
+        line = line.strip()
+        if line.isdigit():
+            return int(line) > 0
+    return False
+
+
+def store_photo(local: Path, stored: str) -> None:
+    if IN_COMPOSE:
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy(local, UPLOAD_DIR / stored)
+        return
+    backend = subprocess.check_output(COMPOSE + ["ps", "-q", "backend"]).decode().strip()
+    if not backend:
+        raise RuntimeError("backend container is not running")
+    subprocess.check_call(["docker", "cp", str(local), f"{backend}:/app/uploads/{stored}"])
+
+
+def print_search_hint(item: dict) -> None:
+    s = item["search"]
+    print(f"- {item['title']}")
+    print(f"  Category: {s['category']}")
+    print(f"  Title: {s['title']}")
+    print(f"  Description: {s['description']}")
+    print(f"  Unique marks: {s['marks']}")
+    print(f"  Place: {s['place']} / {s['details']}")
+    print(f"  Date lost: {LOST_DATE}")
+    print(f"  Finder Telegram: @{item['telegram']}")
+    print()
 
 
 def main() -> None:
-    psql("TRUNCATE TABLE matches, reports RESTART IDENTITY CASCADE;")
-    print("database cleared\n")
+    if IN_COMPOSE:
+        wait_ready()
+        if already_seeded():
+            print("demo found items already present, skipping seed")
+            return
+    else:
+        psql("TRUNCATE TABLE matches, reports RESTART IDENTITY CASCADE;")
+        print("database cleared\n")
+
     print("How to search (I lost something):\n")
     for item in ITEMS:
         local = download(item["file"], item["url"])
-        ext = local.suffix.lower()
-        stored = f"{uuid.uuid4()}{ext}"
+        stored = f"{uuid.uuid4()}{local.suffix.lower()}"
         rid = str(uuid.uuid4())
-        subprocess.check_call(["docker", "cp", str(local), f"{BACKEND}:/app/uploads/{stored}"])
+        store_photo(local, stored)
         photos = json.dumps([stored])
         sql = f"""
 INSERT INTO reports (
@@ -281,22 +366,13 @@ INSERT INTO reports (
 ) VALUES (
   {sql_str(rid)}::uuid, 'found', {sql_str(item['category'])}, {sql_str(item['title'])},
   {sql_str(item['description'])}, {sql_str(item['unique_features'])},
-  {sql_str(item['location'])}, {sql_str(item['location_details'])}, DATE {sql_str(item['incident_date'])},
+  {sql_str(item['location'])}, {sql_str(item['location_details'])}, DATE {sql_str(FOUND_DATE)},
   {sql_str(photos)}::jsonb, {sql_str(item['phone'])}, {sql_str(item['telegram'])},
   'unclaimed', NOW()
 );
 """
         psql(sql)
-        s = item["search"]
-        print(f"- {item['title']}")
-        print(f"  Category: {s['category']}")
-        print(f"  Title: {s['title']}")
-        print(f"  Description: {s['description']}")
-        print(f"  Unique marks: {s['marks']}")
-        print(f"  Place: {s['place']} / {s['details']}")
-        print(f"  Date lost: {s['date']}")
-        print(f"  Finder Telegram: @{item['telegram']}")
-        print()
+        print_search_hint(item)
     print("Seed complete. Open http://localhost:3000/lost")
 
 

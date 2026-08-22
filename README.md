@@ -26,6 +26,14 @@ docker compose up --build
 - Web: http://localhost:3000
 - API: http://localhost:8080/health
 
+On first start, a one-shot `seed` container waits for the API, then loads 10 demo found items (AirPods, backpack, keys, and so on) with photos. Later `docker compose up` runs skip seeding if those rows already exist, so your own reports are not wiped.
+
+To reset the demo data while Docker is running:
+
+```bash
+python3 scripts/seed_found.py
+```
+
 That is the only required setup.
 
 ## Approach
@@ -112,7 +120,7 @@ Each kept match stores Groq score, Gemini score, combined score, and a short rea
 
 ## AI usage
 
-I used Cursor (Grok) to implement the Go API, Next.js UI, Docker setup, and the matching prompts from the product rules above. For the look of the UI I pulled the TypeUI Brutalism design skill and applied its tokens (palette, type, borders, shadows) instead of inventing a one-off theme. I specified the architecture, the hard-filter rules, the dual-model split, the score mix, and what not to build. I then checked the generated wiring (typed-nil interfaces, Gemini REST image field names, date window SQL) and adjusted those.
+I used Cursor to assist me to implement the Go API, Next.js UI, Docker setup, and the matching prompts from the product rules above and try to debug the code by writing test. For the look of the UI I pulled the TypeUI Brutalism design skill and applied its tokens (palette, type, borders, shadows) instead of inventing a one-off theme. I specified the architecture, the hard-filter rules, the dual-model split, the score mix, and what not to build. I then checked the generated wiring (typed-nil interfaces, Gemini REST image field names, date window SQL) and adjusted those.
 
 ## Project layout
 
