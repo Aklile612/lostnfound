@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --primary: #dd614c;
+  --secondary: #daa144;
+  --ink: #111827;
+  --surface: #ffffff;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #111827;
+}
+
+::selection {
+  background: #dd614c;
+  color: #ffffff;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+.field {
+  @apply w-full rounded-sm border-[3px] border-ink bg-surface px-4 py-3 text-ink outline-none;
+}
+
+.field:focus,
+.field:focus-visible {
+  @apply shadow-brutal-sm;
+}
+
+.label {
+  @apply mb-2 block font-mono text-xs font-medium uppercase tracking-widest text-ink;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-sm border-[3px] border-ink px-5 py-3 font-mono text-sm font-bold uppercase tracking-wide transition-transform;
+}
+
+.btn:focus-visible {
+  outline: 3px solid #dd614c;
+  outline-offset: 3px;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.btn:disabled {
+  @apply cursor-not-allowed opacity-50;
+}
+
+.panel {
+  @apply rounded-sm border-[3px] border-ink bg-surface p-6 shadow-brutal sm:p-8;
+}
+
+.stamp {
+  @apply font-mono text-xs font-bold uppercase tracking-[0.18em];
+}
