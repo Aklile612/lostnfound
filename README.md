@@ -86,6 +86,7 @@ Each kept match stores Groq score, Gemini score, combined score, and a short rea
 
 - **Go** for the API: Gin, pgx.
 - **Next.js** for the UI: two forms and a report page.
+- **Frontend design:** TypeUI [Brutalism](https://www.typeui.sh/design-skills/brutalism) (`npx typeui.sh pull brutalism`). The skill is in `.cursor/skills/design-system/SKILL.md`. Tokens from that system: white surface (`#FFFFFF`), near-black text (`#111827`), coral primary (`#DD614C`), gold secondary (`#DAA144`), Darker Grotesque + JetBrains Mono, thick black borders, and hard offset shadows. Layout is Tailwind CSS.
 - **Postgres** so the hard filter is a real query, not a loop in memory.
 - **Clean architecture** in the backend: `domain` → `port` → `repository` / `ai` → `service` → `handler`. Matching rules stay in the service; HTTP does not know about Groq or Gemini.
 - **Docker Compose** so a reviewer can run everything with one command.
@@ -96,7 +97,7 @@ Each kept match stores Groq score, Gemini score, combined score, and a short rea
 - Accounts, email, or notifications when a new found item arrives later
 - A staff inbox or moderation
 - Map / GPS distance
-- Embedding search over the whole database (the SQL filter already cuts the set to a handful of rows)
+- Vector embeddings as a semantic filter. The usual next step after SQL: embed each found description (e.g. Google `text-embedding-004`), store the vector, then when a lost report arrives embed it too and ask the database for the top 10 nearest rows. Fast, cheap, and it catches synonyms like “backpack” ≈ “bag” before Groq or Gemini run. Not built here because the hard filter already leaves only a handful of candidates.
 - Automated tests (time was spent on the matching path instead)
 - Production-grade claim verification
 
@@ -105,13 +106,13 @@ Each kept match stores Groq score, Gemini score, combined score, and a short rea
 - Notify the owner when a new found item appears in their window
 - Confirm identity before showing contact details or marking claimed
 - Let staff override the 7-day window and the category
-- Store embeddings of descriptions and photos after the SQL filter, for faster ranking
+- Add vector embeddings after the SQL filter so ranking can use nearest-neighbor search instead of sending every leftover row to an LLM
 - Moderate photos and hide contact info until a match is accepted
 - Add a short campus-specific synonym list (e.g. “cafe” = cafeteria)
 
 ## AI usage
 
-I used Cursor (Grok) to implement the Go API, Next.js UI, Docker setup, and the matching prompts from the product rules above. I specified the architecture, the hard-filter rules, the dual-model split, the score mix, and what not to build. I then checked the generated wiring (typed-nil interfaces, Gemini REST image field names, date window SQL) and adjusted those.
+I used Cursor (Grok) to implement the Go API, Next.js UI, Docker setup, and the matching prompts from the product rules above. For the look of the UI I pulled the TypeUI Brutalism design skill and applied its tokens (palette, type, borders, shadows) instead of inventing a one-off theme. I specified the architecture, the hard-filter rules, the dual-model split, the score mix, and what not to build. I then checked the generated wiring (typed-nil interfaces, Gemini REST image field names, date window SQL) and adjusted those.
 
 ## Project layout
 
